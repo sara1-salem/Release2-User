@@ -11,18 +11,24 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.BaseAdapter;
-import android.widget.ListView;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.indooratlas.android.sdk.examples.geofence.GeofenceMapsOverlayActivity;
 
 import java.util.ArrayList;
 
@@ -32,43 +38,44 @@ import java.util.ArrayList;
  * activity. Activities are populated from AndroidManifest metadata.
  */
 public class ListExamplesActivity extends AppCompatActivity {
-
     private static final String TAG = "IAExample";
-
+    private ImageView splashicon;
+    private static int splashtimeout=1500;
     private static final int REQUEST_CODE_ACCESS_COARSE_LOCATION = 1;
 
-    private ExamplesAdapter mAdapter;
+    // private ExamplesAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mAdapter = new ExamplesAdapter(this);
-        ListView listView = (ListView) findViewById(android.R.id.list);
-        listView.setAdapter(mAdapter);
+        splashicon = findViewById(R.id.imageView);
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        new Handler().postDelayed(new Runnable() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                ComponentName example = mAdapter.mExamples.get(position).mComponentName;
-                startActivity(new Intent(Intent.ACTION_VIEW).setComponent(example));
+            public void run() {
+                Intent intent = new Intent(ListExamplesActivity.this,GeofenceMapsOverlayActivity.class);
+                startActivity(intent);
+                finish();
             }
-        });
+        },splashtimeout);
+        Animation myanime = AnimationUtils.loadAnimation(this,R.anim.mysplash);     //using animation in splash activity
+        splashicon.startAnimation(myanime);
 
-        if (!isSdkConfigured()) {
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.configuration_incomplete_title)
-                    .setMessage(R.string.configuration_incomplete_message)
-                    .setPositiveButton(R.string.button_ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            finish();
-                        }
-                    }).show();
-        }
 
     }
+
+
+
+
+    public void onClickA(View v)
+    {
+        Intent myintent = new Intent(ListExamplesActivity.this, GeofenceMapsOverlayActivity.class);
+        // show map to USER -- DONE
+        startActivity(myintent);
+    }
+
 
     @Override
     protected void onResume() {
@@ -141,9 +148,9 @@ public class ListExamplesActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Adapter for example activities.
-     */
+    //    /**
+//     * Adapter for example activities.
+//     */
     class ExamplesAdapter extends BaseAdapter {
 
         final ArrayList<ExampleEntry> mExamples;
@@ -246,10 +253,10 @@ public class ListExamplesActivity extends AppCompatActivity {
         }
     }
 
-
+    //this was changed
     private boolean isSdkConfigured() {
-        return !"api-key-not-set".equals(getString(R.string.indooratlas_api_key))
-                && !"api-secret-not-set".equals(getString(R.string.indooratlas_api_secret));
+        return !"api-key-not-set".equals("20bafe68-db36-4b89-9397-4612217b49a1")
+                && !"api-secret-not-set".equals("gZK/d9gq1MnORalhUJ+WLQ2shzX6h6TvjhwV8Z0K/QxkSO2NuwN+YTcwN/NNvabx47t+Z7MaIiap/j1ucMP8Mvw6ir5Pvo8cJ2RLhtJqVqxTELGMtCY1mxIcF/4rxQ==");
     }
 
 

@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "1097107563038",
+    "firebase_url": "https://guideme-a0db5-default-rtdb.firebaseio.com",
+    "project_id": "guideme-a0db5",
+    "storage_bucket": "guideme-a0db5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1097107563038:android:ab2798ede8719e1b80c40f",
+        "android_client_info": {
+          "package_name": "com.indooratlas.android.sdk.Guideme"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1097107563038-t36bcj8sq442inm7oh3rfabt03n1cmpm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAS5BWWh3Brxmy-iNYyXX5fF0XTHmxCRv8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1097107563038-t36bcj8sq442inm7oh3rfabt03n1cmpm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1097107563038:android:29ecf87d89827acd80c40f",
+        "android_client_info": {
+          "package_name": "com.indooratlas.android.sdk.examples"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1097107563038-t36bcj8sq442inm7oh3rfabt03n1cmpm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAS5BWWh3Brxmy-iNYyXX5fF0XTHmxCRv8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1097107563038-t36bcj8sq442inm7oh3rfabt03n1cmpm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

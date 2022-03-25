@@ -1,20 +1,38 @@
 package com.indooratlas.android.sdk.examples.geofence;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.FragmentActivity;
+
+import androidx.annotation.NonNull;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.material.snackbar.Snackbar;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.FragmentActivity;
+
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -30,6 +48,11 @@ import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.indooratlas.android.sdk.IAGeofence;
 import com.indooratlas.android.sdk.IAGeofenceEvent;
 import com.indooratlas.android.sdk.IAGeofenceListener;
@@ -39,11 +62,16 @@ import com.indooratlas.android.sdk.IALocationListener;
 import com.indooratlas.android.sdk.IALocationManager;
 import com.indooratlas.android.sdk.IALocationRequest;
 import com.indooratlas.android.sdk.IARegion;
+import com.indooratlas.android.sdk.IARoute;
+import com.indooratlas.android.sdk.IAWayfindingListener;
+import com.indooratlas.android.sdk.IAWayfindingRequest;
 import com.indooratlas.android.sdk.examples.ListExamplesActivity;
+import com.indooratlas.android.sdk.examples.NearbyLandmarks;
 import com.indooratlas.android.sdk.examples.R;
 import com.indooratlas.android.sdk.examples.SdkExample;
 import com.indooratlas.android.sdk.resources.IAFloorPlan;
 import com.indooratlas.android.sdk.resources.IALatLng;
+import com.indooratlas.android.sdk.resources.IALatLngFloorCompatible;
 import com.indooratlas.android.sdk.resources.IALocationListenerSupport;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.RequestCreator;
@@ -53,14 +81,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@SdkExample(description = R.string.example_googlemaps_overlay_geofencing_description)
-public class GeofenceMapsOverlayActivity extends FragmentActivity implements LocationListener, OnMapReadyCallback, IAGeofenceListener {
-
+public class GeofenceMapsOverlayActivity extends FragmentActivity implements LocationListener, OnMapReadyCallback {
+Button goToNearbyLandmark;
+    public static  double currentLatitude;
+    public static  double currentLongitude;
     private static final String TAG = "IndoorAtlasExample";
-    private static final int EDIT_REQUEST = 1;
+    Button currentLocation;
     /* used to decide when bitmap should be downscaled */
     private static final int MAX_DIMENSION = 2048;
-
+    FirebaseDatabase database;
+    DatabaseReference myRef;
     private static final double GEOFENCE_RADIUS_METERS = 5.0;
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
@@ -72,89 +102,10 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
     private Target mLoadTarget;
     private boolean mCameraPositionNeedsUpdating = true; // update on first location
     private boolean mShowIndoorLocation = false;
-
+    LocationRequest locationRequest;
     IALocation mLatestLocation = null;
-    private HashMap<LatLng, IAGeofence> mGeofences = new HashMap<>();
-    private HashMap<LatLng, Circle> mGeofenceCircles = new HashMap<>();
-    private List<IAGeofence> mTriggeredGeofences = new ArrayList<>();
+    FusedLocationProviderClient fusedLocationProviderClient;
 
-    private static int mRunningGeofenceId = 0;
-
-    private boolean mGuideShown = false;
-
-    @Override
-    public void onGeofencesTriggered(IAGeofenceEvent event) {
-
-        // Assume we have only one geofence (this example)
-        IAGeofence geofence = event.getTriggeringGeofences().get(0);
-
-        if (event.getGeofenceTransition() == IAGeofence.GEOFENCE_TRANSITION_ENTER) {
-            mTriggeredGeofences.addAll(event.getTriggeringGeofences());
-        } else {
-            for (IAGeofence g : event.getTriggeringGeofences()) {
-                mTriggeredGeofences.remove(g);
-            }
-        }
-
-        String sb = "Geofence " + geofence.getName() + " triggered. Trigger type: " +
-                ((event.getGeofenceTransition() == IAGeofence.GEOFENCE_TRANSITION_ENTER) ?
-                        "ENTER" : "EXIT");
-
-        Toast.makeText(this,
-                sb,
-                Toast.LENGTH_LONG).show();
-
-        final LatLng center = new LatLng(mLatestLocation.getLatitude(), mLatestLocation.getLongitude());
-
-        if (mShowIndoorLocation) {
-            showBlueDot(center, mLatestLocation.getAccuracy(), mLatestLocation.getBearing());
-        }
-    }
-
-
-    /**
-     * Place a geofence with radius of 10 meters around specified location
-     *
-     * @param latLng LatLng where to put the geofence
-     */
-    private void placeNewGeofence(LatLng latLng) {
-        // Add a circular geofence by adding points with a 5 m radius clockwise
-        final double radius = GEOFENCE_RADIUS_METERS;
-        final int edgeCount = 12;
-        final double EARTH_RADIUS_METERS = 6.371e6;
-        final double latPerMeter = 1.0 / (EARTH_RADIUS_METERS * Math.PI / 180);
-        final double lonPerMeter = latPerMeter / Math.cos(Math.PI / 180.0 * latLng.latitude);
-
-        ArrayList<double[]> edges = new ArrayList<>();
-        for (int i = 0; i < edgeCount; i++) {
-            double angle = -2 * Math.PI * i / edgeCount;
-            double lat = latLng.latitude + radius * latPerMeter * Math.sin(angle);
-            double lon = latLng.longitude + radius * lonPerMeter * Math.cos(angle);
-            edges.add(new double[]{lat, lon});
-        }
-
-        String geofenceId = "My geofence " + mRunningGeofenceId++;
-        Log.d(TAG, "Creating a geofence with id \"" + geofenceId + "\"");
-        IAGeofence geofence = new IAGeofence.Builder()
-                .withEdges(edges)
-                .withId(geofenceId)
-                .withName(geofenceId)
-                .build();
-
-
-        Log.i(TAG, "New geofence registered: " + geofence);
-        mIALocationManager.addGeofences(new IAGeofenceRequest.Builder()
-                .withCloudGeofences(true) // listen also geofences defined in app.indooratlas.com
-                .withGeofence(geofence)
-                .build(), this);
-
-        mGeofences.put(latLng, geofence);
-
-        Toast.makeText(this,
-                "New geofence set! Listening also triggers for " +
-                        "geofences defined in app.indooratlas.com",
-                Toast.LENGTH_LONG).show();
-    }
 
     private void showBlueDot(LatLng center, double accuracyRadius, double bearing) {
         if (mMap != null) {
@@ -189,38 +140,6 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
                 mMarker.setPosition(center);
                 mMarker.setRotation((float) bearing);
             }
-
-            // Draw geofences
-            for (LatLng geofence : mGeofences.keySet()) {
-
-                Log.d(TAG, "mTriggeredGeofences.size:: " + mTriggeredGeofences.size());
-                Log.d(TAG, "mGeofences.size:: " + mGeofences.size());
-
-                int color = 0x3172d000;
-                if (mTriggeredGeofences.contains(mGeofences.get(geofence))) {
-                    Log.d(TAG, "geofence : " + geofence + ", is currently inside!");
-                    // color the triggered geofences
-                    color = 0x31fb7927;
-                } else {
-                    Log.d(TAG, "geofence : " + geofence + ", NOT currently inside!");
-                }
-
-                // already drawn
-                if (mGeofenceCircles.containsKey(geofence)) {
-                    mGeofenceCircles.get(geofence).setFillColor(color);
-                } else {
-                    Circle c = mMap.addCircle(new CircleOptions()
-                            .center(geofence)
-                            .radius(GEOFENCE_RADIUS_METERS) // hardcoded geofence radius
-                            .fillColor(color)
-                            .strokeColor(0x31515724)
-                            .zIndex(1.0f)
-                            .visible(true)
-                            .strokeWidth(5.0f));
-
-                    mGeofenceCircles.put(geofence, c);
-                }
-            }
         }
     }
 
@@ -235,12 +154,12 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
         @Override
         public void onLocationChanged(IALocation location) {
 
-            if (!mGuideShown) {
-                mGuideShown = true;
-                Toast.makeText(GeofenceMapsOverlayActivity.this,
-                        "Long-touch to add a geofence",
-                        Toast.LENGTH_LONG).show();
-            }
+//            if (!mGuideShown) {
+//                mGuideShown = true;
+//                Toast.makeText(GeofenceMapsOverlayActivity.this,
+//                        "Long-touch to add a geofence",
+//                        Toast.LENGTH_LONG).show();
+//            }
 
             mLatestLocation = location;
 
@@ -289,11 +208,9 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
                 }
 
                 mShowIndoorLocation = true;
-                showInfo("Showing IndoorAtlas SDK's location output");
+//                showInfo("Showing IndoorAtlas SDK's location output");
             }
-            showInfo("Enter " + (region.getType() == IARegion.TYPE_VENUE
-                    ? "VENUE "
-                    : "FLOOR_PLAN ") + region.getId());
+
         }
 
         @Override
@@ -305,15 +222,59 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
             }
 
             mShowIndoorLocation = false;
-            showInfo("Exit " + (region.getType() == IARegion.TYPE_VENUE
-                    ? "VENUE "
-                    : "FLOOR_PLAN ") + region.getId());
+
         }
 
     };
 
     @Override
     public void onLocationChanged(@NonNull Location location) {
+        database = FirebaseDatabase.getInstance();
+        myRef = database.getReference("Map/Landmark/");
+        myRef.addValueEventListener(new ValueEventListener() {
+            String landmark;
+            double longitude;
+            double latitude;
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+//                 This method is called once with the initial value and again
+//                 whenever data at this location is updated.
+                Landmarks value = dataSnapshot.getValue(Landmarks.class);
+                Log.d(TAG, "Value is: " + value);
+        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+//
+            String lat = ds.child("latLng/latitude").getValue().toString();
+            String lng = ds.child("latLng/longitude").getValue().toString();
+             landmark = ds.child("Title").getValue(String.class);
+
+             latitude = Double.parseDouble(lat);
+             longitude = Double.parseDouble(lng);
+        }
+                double currentLatitude=location.getLatitude();
+                double currentLongitude=location.getLongitude();
+
+                double latitude1=latitude;
+                double longitude1=longitude;
+                float distance;
+                Location crntLocation=new Location("crntlocation");
+                crntLocation.setLatitude(currentLatitude);
+                crntLocation.setLongitude(currentLongitude);
+
+                Location newLocation=new Location("newlocation");
+                newLocation.setLatitude(latitude1);
+                newLocation.setLongitude(longitude1);
+                distance =crntLocation.distanceTo(newLocation);
+                Toast.makeText(GeofenceMapsOverlayActivity.this, "The distance from your current location to "+landmark+" is"+distance, Toast.LENGTH_SHORT).show();
+
+                }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+
         if (!mShowIndoorLocation) {
             Log.d(TAG, "new LocationService location received with coordinates: " + location.getLatitude()
                     + "," + location.getLongitude());
@@ -322,7 +283,10 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
                     new LatLng(location.getLatitude(), location.getLongitude()),
                     location.getAccuracy(),
                     location.getBearing());
+
+
         }
+
     }
 
     @Override
@@ -341,7 +305,7 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-
+        currentLocation=(Button) findViewById(R.id.currentLocation);
         // prevent the screen going to sleep while app is on foreground
         findViewById(android.R.id.content).setKeepScreenOn(true);
 
@@ -354,9 +318,147 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
         ((SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map))
                 .getMapAsync(this);
+        //to retrieve all markers from database to map
+        getData();
+        //to retrieve all warning msgs from database to map
+
+        getData1();
+        currentLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showMyCurrentLocation();
+            }
+        });
+
+        goToNearbyLandmark=findViewById(R.id.NearbyLandmark);
+        goToNearbyLandmark.setOnClickListener(v -> {
+            Intent myintent = new Intent(GeofenceMapsOverlayActivity.this, NearbyLandmarks.class);
+            startActivity(myintent);
+        });
 
     }
+    private void getData(){
+        database = FirebaseDatabase.getInstance();
+        myRef = database.getReference("Map/Landmark/");
+        myRef.addValueEventListener(new ValueEventListener() {
 
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+//                 This method is called once with the initial value and again
+//                 whenever data at this location is updated.
+                Landmarks value = dataSnapshot.getValue(Landmarks.class);
+                Log.d(TAG, "Value is: " + value);
+
+
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
+//
+
+                    String lat = ds.child("latLng/latitude").getValue().toString();
+                    String lng = ds.child("latLng/longitude").getValue().toString();
+                    String msg = ds.child("Title").getValue(String.class);
+
+                    double latitude = Double.parseDouble(lat);
+                    double longitude = Double.parseDouble(lng);
+                    LatLng loc = new LatLng(latitude, longitude);
+                    mMap.addMarker(new MarkerOptions().position(loc).title(msg));
+                }
+            }
+
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+//                 Failed to read value
+                Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
+    }
+    private void getData1(){
+        locationRequest = LocationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(3000);
+double radius=1;
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(GeofenceMapsOverlayActivity.this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            return;
+        }
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                currentLatitude=locationResult.getLastLocation().getLatitude()+radius;
+                currentLongitude=locationResult.getLastLocation().getLongitude()+radius;
+            }
+        }, Looper.getMainLooper());
+        Location crntLocation=new Location("crntlocation");
+        crntLocation.setLatitude(currentLatitude);
+        crntLocation.setLongitude(currentLongitude);
+        database = FirebaseDatabase.getInstance();
+        myRef = database.getReference("Map/WarningMsg/");
+        myRef.addValueEventListener(new ValueEventListener() {
+Location wmloc;
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+//                 This method is called once with the initial value and again
+//                 whenever data at this location is updated.
+                Landmarks value = dataSnapshot.getValue(Landmarks.class);
+                Log.d(TAG, "Value is: " + value);
+
+
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
+//
+
+                    String lat = ds.child("latLng/latitude").getValue().toString();
+                    String lng = ds.child("latLng/longitude").getValue().toString();
+                    String msg = ds.child("Title").getValue(String.class);
+
+                    double latitude = Double.parseDouble(lat);
+                    double longitude = Double.parseDouble(lng);
+                    wmloc=new Location("WM_location");
+                    wmloc.setLatitude(latitude);
+                    wmloc.setLongitude(longitude);
+                    LatLng loc = new LatLng(latitude, longitude);
+                    mMap.addMarker(new MarkerOptions().position(loc).title(msg).draggable(true).icon(BitmapDescriptorFactory.fromResource(R.drawable.warningmsg)));
+                     if (crntLocation == wmloc) {
+                         // Display the dialog.
+                         AlertDialog.Builder builder = new AlertDialog.Builder(GeofenceMapsOverlayActivity.this);
+                         builder.setTitle("Warning Message!!")
+                                 .setMessage(msg)
+                                 .setNeutralButton("OK", null);
+                         AlertDialog dialog = builder.create();
+                         dialog.show();
+                     }
+                }
+            }
+
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+//                 Failed to read value
+                Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
+    }
+    private void showMyCurrentLocation() {
+        locationRequest = LocationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(3000);
+
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(GeofenceMapsOverlayActivity.this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            return;
+        }
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                Toast.makeText(GeofenceMapsOverlayActivity.this,"Location: "+locationResult.getLastLocation().getLongitude()+" , "+locationResult.getLastLocation().getLatitude(),Toast.LENGTH_LONG).show();
+            }
+        }, Looper.getMainLooper());
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -371,9 +473,7 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
         // start receiving location updates & monitor region changes
         mIALocationManager.requestLocationUpdates(IALocationRequest.create(), mListener);
         mIALocationManager.registerRegionListener(mRegionListener);
-        mIALocationManager.addGeofences(new IAGeofenceRequest.Builder()
-                .withCloudGeofences(true) // listen geofences defined in app.indooratlas.com
-                .build(), this);
+
     }
 
     @Override
@@ -388,17 +488,7 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(final LatLng latlng) {
-//                Landmarks.add(point);
-//                mMap.clear();
-//                mMap.addMarker(new MarkerOptions().position(point));
-                Intent edit = new Intent(GeofenceMapsOverlayActivity.this, EditActivity.class);
-                edit.putExtra("location", latlng);
-                GeofenceMapsOverlayActivity.this.startActivityForResult(edit, EDIT_REQUEST);
-            }
-        });
+        mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
 
         if (!ListExamplesActivity.checkLocationPermissions(this)) {
             finish(); // Handle permission asking in ListExamplesActivity
@@ -408,27 +498,7 @@ public class GeofenceMapsOverlayActivity extends FragmentActivity implements Loc
         // do not show Google's outdoor location
         mMap.setMyLocationEnabled(false);
 
-        // Setup long click to add a dynamic geofence
-        mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
-            @Override
-            public void onMapLongClick(LatLng latLng) {
-                placeNewGeofence(latLng);
-            }
-        });
-    }
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        switch(requestCode) {
-            case (EDIT_REQUEST) : {
-                if (resultCode == Activity.RESULT_OK) {
-                    MarkerOptions markerOptions = data.getParcelableExtra("marker");
-                    mMap.addMarker(markerOptions);
-                }
-                break;
-            }
-        }
     }
 
     /**
