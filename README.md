@@ -17,3 +17,4 @@ How to run
 Android device is required to run the application.
 Admin application: you need the log in information the admin, to have the access to open the application.
 User application: you can run the application immediately. 
+..
