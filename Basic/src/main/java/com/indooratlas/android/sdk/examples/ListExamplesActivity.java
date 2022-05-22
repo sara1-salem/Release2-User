@@ -28,8 +28,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.indooratlas.android.sdk.examples.geofence.GeofenceMapsOverlayActivity;
-
 import java.util.ArrayList;
 
 
@@ -55,7 +53,7 @@ public class ListExamplesActivity extends AppCompatActivity {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                Intent intent = new Intent(ListExamplesActivity.this,GeofenceMapsOverlayActivity.class);
+                Intent intent = new Intent(ListExamplesActivity.this,WayfindingOverlayActivity.class);
                 startActivity(intent);
                 finish();
             }
@@ -71,7 +69,7 @@ public class ListExamplesActivity extends AppCompatActivity {
 
     public void onClickA(View v)
     {
-        Intent myintent = new Intent(ListExamplesActivity.this, GeofenceMapsOverlayActivity.class);
+        Intent myintent = new Intent(ListExamplesActivity.this, WayfindingOverlayActivity.class);
         // show map to USER -- DONE
         startActivity(myintent);
     }

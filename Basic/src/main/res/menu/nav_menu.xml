@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group
+        android:id="@+id/group1"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/classroom"
+            android:icon="@drawable/cl"
+            android:title="Show me all Classrooms" />
+        <item
+            android:id="@+id/coffee"
+            android:icon="@drawable/coffee"
+            android:title="Show me all Coffee shops"
+            android:checked="true" />
+        <item
+            android:id="@+id/wc"
+            android:icon="@drawable/wcc"
+            android:title="Show me all WC places" />
+
+        <item
+            android:id="@+id/EXIT"
+            android:icon="@drawable/ex"
+            android:title="Show me all EXIT doors" />
+        <item
+            android:id="@+id/stairs"
+            android:icon="@drawable/stt"
+            android:title="Show me all Stairs" />
+        <item
+            android:id="@+id/NearbyLandmark"
+            android:icon="@drawable/other"
+            android:title="Show me only landmarks near  me" />
+        <item
+            android:id="@+id/AllLandmarkd"
+            android:icon="@drawable/other"
+            android:title="Show me All Landmarks" />
+        <item
+            android:id="@+id/others"
+            android:icon="@drawable/other"
+            android:title="Show me Others landmarks" />
+    </group>
+</menu>

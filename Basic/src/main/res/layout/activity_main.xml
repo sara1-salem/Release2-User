@@ -20,21 +20,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/logogp2" />
 
-    <TextView
-        android:id="@+id/textView3"
-        android:layout_width="274dp"
-        android:layout_height="39dp"
-        android:layout_marginStart="115dp"
-        android:layout_marginEnd="115dp"
-        android:text="For Indoor Navigation "
-        android:textColor="#155E97"
-        android:textSize="20dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.63" />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

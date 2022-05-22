@@ -1,46 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<androidx.drawerlayout.widget.DrawerLayout android:layout_height="match_parent"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".ListExamplesActivity">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:id="@+id/dl">
 
-    <fragment
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        xmlns:map="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        map:uiRotateGestures="true"
-        map:uiScrollGestures="true"
-        map:uiTiltGestures="true"
-        map:uiZoomGestures="true" />
+        android:background="#3F51B5">
 
-    <Button
-        android:id="@+id/currentLocation"
-        android:layout_width="186dp"
-        android:layout_height="66dp"
-        android:backgroundTint="#165E98"
-        android:text="Where i am?"
-        app:layout_constraintBottom_toBottomOf="@+id/map"
-        app:layout_constraintEnd_toEndOf="@+id/map"
-        app:layout_constraintHorizontal_bias="0.105"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0"></Button>
+        <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="875dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="-11dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:uiRotateGestures="true"
+            app:uiScrollGestures="true"
+            app:uiTiltGestures="true"
+            app:uiZoomGestures="true" />
 
-    <Button
-android:id="@+id/NearbyLandmark"
-        android:layout_width="186dp"
-        android:layout_height="66dp"
-        android:backgroundTint="#165E98"
-        android:text="Nearby landmarks"
-        app:layout_constraintBottom_toBottomOf="@+id/map"
-        app:layout_constraintEnd_toEndOf="@+id/map"
-        app:layout_constraintHorizontal_bias="0.934"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0"></Button>
+        <TextView
+            android:id="@+id/distanceBox"
+            android:layout_width="430dp"
+            android:layout_height="58dp"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="-6dp"
+            android:background="#3F51B5"
+            android:textAlignment="center"
+            android:textColor="#FCFAFA"
+            android:textDirection="inherit"
+            android:textSize="17sp"
+            android:gravity="center"
+            android:verticalScrollbarPosition="defaultPosition"
+            app:layout_constraintBottom_toBottomOf="@+id/map"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="155dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginStart="-1dp"
+            android:layout_marginTop="1dp"
+            android:layout_marginEnd="2dp"
+            android:layout_marginBottom="708dp"
+            android:drawableLeft="@drawable/drag2"
+            android:textColor="#FCFBFB"
+
+            android:textSize="16sp" />
+
+
+
+    </RelativeLayout>
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#3F51B5"
+        app:headerLayout="@layout/navigation_header"
+        app:menu="@menu/nav_menu">
+
+    </com.google.android.material.navigation.NavigationView>
+
+</androidx.drawerlayout.widget.DrawerLayout>
